@@ -30,6 +30,7 @@ def quicksort(arr: List[int]) -> List[int]:
     """Sort a list in ascending order using quicksort (Lomuto partition).
 
     Average case: O(n log n). Worst case (already sorted with poor pivots): O(n^2).
+    Recurses into the smaller partition first so stack depth stays O(log n).
     """
     data = arr.copy()
     _quicksort_inplace(data, 0, len(data) - 1)
@@ -37,28 +38,30 @@ def quicksort(arr: List[int]) -> List[int]:
 
 
 def _quicksort_inplace(data: List[int], low: int, high: int) -> None:
-    if low < high:
+    while low < high:
         pivot_index = _partition(data, low, high)
-        _quicksort_inplace(data, low, pivot_index - 1)
-        _quicksort_inplace(data, pivot_index + 1, high)
+        # Recurse on the smaller side; iterate on the larger side.
+        if pivot_index - low < high - pivot_index:
+            _quicksort_inplace(data, low, pivot_index - 1)
+            low = pivot_index + 1
+        else:
+            _quicksort_inplace(data, pivot_index + 1, high)
+            high = pivot_index - 1
 
 
 def _partition(data: List[int], low: int, high: int) -> int:
-    # Median-of-three reduces worst-case behaviour on sorted / reverse inputs.
-    mid = (low + high) // 2
-    candidates = [(data[low], low), (data[mid], mid), (data[high], high)]
-    candidates.sort(key=lambda pair: pair[0])
-    pivot_pos = candidates[1][1]
+    # Random pivot avoids consistently bad splits on sorted / patterned input.
+    pivot_pos = random.randint(low, high)
     data[pivot_pos], data[high] = data[high], data[pivot_pos]
 
     pivot = data[high]
-    i = low - 1
+    i = low
     for j in range(low, high):
-        if data[j] <= pivot:
-            i += 1
+        if data[j] < pivot:
             data[i], data[j] = data[j], data[i]
-    data[i + 1], data[high] = data[high], data[i + 1]
-    return i + 1
+            i += 1
+    data[i], data[high] = data[high], data[i]
+    return i
 
 
 def time_sort(sort_fn, sizes: List[int], trials: int = 3) -> dict[int, float]:
